@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  machine-site:
+    build: .
+    container_name: machine-site
+    ports:
+      - '3000:3000'
+    environment:
+      # Flip to true to enable shutdown/reboot endpoints (requires privileges inside container).
+      - ENABLE_POWER_CONTROLS=false
+      # Optional ISO string to display as machine birthdate, e.g. 2020-06-01T00:00:00Z
+      - MACHINE_BIRTHDATE=
+    # Uncomment to let the container read host metrics more directly (Linux only).
+    # pid: host
+    # network_mode: host
+    # privileged: true
