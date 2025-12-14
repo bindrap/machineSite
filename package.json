@@ -8,8 +8,11 @@
     "dev": "nodemon server/index.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.8.1",
     "compression": "^1.7.4",
     "express": "^4.19.2",
+    "json2csv": "^6.0.0-alpha.2",
+    "node-cron": "^3.0.3",
     "systeminformation": "^5.23.5",
     "ws": "^8.17.1"
   },

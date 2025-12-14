@@ -4,15 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Machine Status</title>
+    <meta name="theme-color" content="#5af8ff" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
       :root {
         --bg: #05060a;
         --panel: rgba(16, 19, 30, 0.9);
         --panel-2: rgba(20, 26, 41, 0.85);
+        --panel-strong: rgba(10, 12, 20, 0.9);
+        --grid-line: rgba(90, 248, 255, 0.08);
+        --glint: rgba(90, 248, 255, 0.1);
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
         --accent: #5af8ff;
         --accent-2: #9a5cff;
         --muted: #7f8ca5;
@@ -29,13 +38,45 @@
 
       body {
         margin: 0;
-        background: radial-gradient(circle at 20% 20%, rgba(90, 248, 255, 0.08), transparent 35%),
-          radial-gradient(circle at 80% 0%, rgba(154, 92, 255, 0.1), transparent 30%),
-          linear-gradient(145deg, #04060a 0%, #060915 50%, #03040a 100%);
+        background: radial-gradient(circle at 20% 20%, rgba(90, 248, 255, 0.08), transparent 28%),
+          radial-gradient(circle at 80% 10%, rgba(154, 92, 255, 0.06), transparent 32%),
+          var(--bg);
         color: var(--text);
         font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
         min-height: 100vh;
         padding: 32px clamp(16px, 3vw, 42px);
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        position: relative;
+        transition: background-color 2s ease-in-out;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.15;
+        z-index: -1;
+        transition: opacity 2s ease-in-out;
+      }
+
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(0deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 120px 120px;
+        opacity: 0.35;
+        pointer-events: none;
+        z-index: -2;
       }
 
       .shell {
@@ -48,23 +89,28 @@
         align-items: center;
         justify-content: space-between;
         gap: 20px;
-        margin-bottom: 26px;
+        margin-bottom: 30px;
       }
 
       .title {
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
 
       .title h1 {
         margin: 0;
         font-size: clamp(28px, 4vw, 42px);
         letter-spacing: -0.5px;
+        background: linear-gradient(135deg, var(--text), rgba(90, 248, 255, 0.85), rgba(154, 92, 255, 0.7));
+        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text;
+        background-clip: text;
       }
 
       .title p {
         margin: 0;
         color: var(--muted);
+        max-width: 640px;
       }
 
       .pill {
@@ -79,6 +125,70 @@
         align-items: center;
       }
 
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        font-size: 12px;
+        color: var(--accent);
+      }
+
+      .subtitle {
+        color: #d5def0;
+        line-height: 1.4;
+      }
+
+      .meta-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .meta-divider {
+        width: 1px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        display: inline-block;
+      }
+
+      .live-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #fff, var(--accent));
+        box-shadow: 0 0 12px rgba(90, 248, 255, 0.9);
+        display: inline-flex;
+        position: relative;
+      }
+
+      .live-dot::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border: 1px solid rgba(90, 248, 255, 0.4);
+        border-radius: 50%;
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+
+      .theme-chip {
+        background: rgba(90, 248, 255, 0.08);
+        border: 1px solid rgba(90, 248, 255, 0.25);
+        padding: 8px 10px;
+        border-radius: 10px;
+        color: var(--text);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -86,12 +196,24 @@
       }
 
       .card {
-        background: var(--panel);
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(160deg, var(--panel-strong), var(--panel-2));
         border: 1px solid rgba(90, 248, 255, 0.12);
         border-radius: var(--radius);
         padding: 16px 18px;
         backdrop-filter: blur(6px);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        box-shadow: var(--shadow);
+        transition: background-color 2s ease-in-out, border-color 2s ease-in-out;
+      }
+
+      .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, rgba(90, 248, 255, 0.12), transparent 40%);
+        opacity: 0.7;
+        pointer-events: none;
       }
 
       .card h3 {
@@ -143,6 +265,22 @@
         box-shadow: var(--glow);
       }
 
+      .button.active {
+        box-shadow: 0 12px 34px rgba(90, 248, 255, 0.35);
+        transform: translateY(-2px);
+      }
+
+      .button.ghost {
+        background: rgba(90, 248, 255, 0.08);
+        border-color: rgba(90, 248, 255, 0.2);
+        color: #d7eaff;
+      }
+
+      .button.ghost:hover {
+        background: rgba(90, 248, 255, 0.12);
+        box-shadow: 0 10px 30px rgba(90, 248, 255, 0.25);
+      }
+
       .button.danger {
         border-color: rgba(255, 107, 107, 0.4);
         background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 128, 170, 0.2));
@@ -159,6 +297,12 @@
       canvas {
         width: 100%;
         max-height: 320px;
+        border-radius: 12px;
+        background: radial-gradient(circle at 20% 20%, rgba(90, 248, 255, 0.08), transparent 35%),
+          radial-gradient(circle at 80% 10%, rgba(154, 92, 255, 0.05), transparent 30%),
+          rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(90, 248, 255, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
 
       .status {
@@ -168,10 +312,128 @@
         font-size: 13px;
       }
 
+      .process-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+
+      .process-table thead {
+        border-bottom: 1px solid rgba(90, 248, 255, 0.2);
+      }
+
+      .process-table th {
+        padding: 8px;
+        text-align: left;
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .process-table td {
+        padding: 8px;
+        border-bottom: 1px solid rgba(90, 248, 255, 0.05);
+      }
+
+      .process-table tbody tr:hover {
+        background: rgba(90, 248, 255, 0.05);
+      }
+
+      .process-table tbody tr {
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      .kill-btn {
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 128, 170, 0.2));
+        border: 1px solid rgba(255, 107, 107, 0.4);
+        color: #ffdede;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: 'JetBrains Mono', monospace;
+        transition: transform 0.15s ease;
+      }
+
+      .kill-btn:hover {
+        transform: scale(1.05);
+      }
+
+      .system-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .info-item {
+        padding: 6px 0;
+      }
+
+      .info-label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .info-value {
+        color: var(--text);
+        font-size: 13px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      .info-label.highlight {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .info-value.highlight {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.9);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.9);
+          opacity: 0.7;
+        }
+      }
+
       @media (max-width: 720px) {
         header {
           flex-direction: column;
           align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .title {
+          width: 100%;
+        }
+
+        .header-actions {
+          width: 100%;
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: stretch;
+        }
+
+        #machineSelector {
+          width: 100%;
+          min-width: unset;
+          font-size: 14px;
         }
 
         .controls .button {
@@ -185,6 +447,38 @@
         canvas {
           max-height: 240px;
         }
+
+        .pill {
+          font-size: 11px;
+          padding: 4px 10px;
+        }
+
+        h1 {
+          font-size: 1.75rem;
+        }
+
+        .subtitle {
+          font-size: 0.9rem;
+        }
+
+        .card h3 {
+          font-size: 0.9rem;
+        }
+
+        .card .value {
+          font-size: 1.25rem;
+        }
+      }
+
+      /* Tablet support */
+      @media (max-width: 1024px) and (min-width: 721px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        #machineSelector {
+          min-width: 180px;
+        }
       }
     </style>
   </head>
@@ -192,10 +486,23 @@
     <div class="shell">
       <header>
         <div class="title">
+          <p class="eyebrow">Live operations</p>
           <h1>Machine Telemetry</h1>
-          <p>Realtime system health, right off the wire.</p>
+          <div class="meta-row">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span>Link established</span>
+            <span class="meta-divider"></span>
+            <span class="theme-chip">Theme: <strong id="themeLabel">Daily cycle</strong></span>
+          </div>
+          <p class="subtitle">Realtime system health, right off the wire.</p>
         </div>
-        <div id="hostnamePill" class="pill">loading...</div>
+        <div class="header-actions">
+          <select id="machineSelector" class="button" style="padding: 10px 14px; cursor: pointer; min-width: 200px;">
+            <option value="localhost">Loading machines...</option>
+          </select>
+          <button class="button ghost" id="cycleWallpaperBtn">Shuffle wallpaper</button>
+          <div id="hostnamePill" class="pill">loading...</div>
+        </div>
       </header>
 
       <div class="grid" id="infoGrid">
@@ -230,7 +537,10 @@
         <div class="card">
           <h3>GPU</h3>
           <div class="value" id="gpuValue">--</div>
-          <div class="tag" id="gpuUtilTag">--</div>
+          <div class="flex">
+            <span class="tag" id="gpuUtilTag">--</span>
+            <span class="tag" id="gpuVramTag">--</span>
+          </div>
         </div>
         <div class="card">
           <h3>CPU Temp</h3>
@@ -248,7 +558,7 @@
           <div class="tag">Down / Up</div>
         </div>
         <div class="card">
-          <h3>Battery</h3>
+          <h3>Power Status</h3>
           <div class="value" id="batteryValue">--</div>
           <div class="tag" id="batteryHealthTag">--</div>
         </div>
@@ -294,9 +604,215 @@
           </div>
         </div>
       </div>
+
+      <div class="card" style="margin-top: 12px">
+        <h3>Active Processes (Top 10 by CPU)</h3>
+        <div class="flex" style="margin-bottom: 10px">
+          <span class="tag">Total: <span id="processTotal">--</span></span>
+          <span class="tag">Running: <span id="processRunning">--</span></span>
+          <span class="tag">Sleeping: <span id="processSleeping">--</span></span>
+        </div>
+        <div style="overflow-x: auto">
+          <table class="process-table">
+            <thead>
+              <tr>
+                <th>PID</th>
+                <th>Name</th>
+                <th>CPU %</th>
+                <th>MEM %</th>
+                <th>User</th>
+                <th>State</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="processTableBody">
+              <tr><td colspan="7" style="text-align: center; padding: 20px">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 12px">
+        <h3>Extended System Information</h3>
+        <div class="system-info-grid" id="extendedSystemInfo">
+          <div class="info-item">
+            <div class="info-label">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 12px">
+        <h3>Historical Analysis</h3>
+        <p style="color: var(--muted); font-size: 13px; margin-top: 8px; margin-bottom: 16px;">
+          View long-term trends and export data for analysis
+        </p>
+
+        <div class="controls flex" style="margin-bottom: 16px">
+          <select id="timeRangeSelect" class="button" style="padding: 10px 14px; cursor: pointer; background: var(--panel-2);">
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="90d">Last 90 Days</option>
+          </select>
+
+          <select id="metricSelect" class="button" style="padding: 10px 14px; cursor: pointer; background: var(--panel-2);">
+            <option value="cpu">CPU Load</option>
+            <option value="ram">RAM Usage</option>
+            <option value="gpu">GPU Utilization</option>
+            <option value="temp">Temperatures</option>
+          </select>
+
+          <button class="button" id="exportCsvBtn" style="margin-left: auto">Export CSV</button>
+        </div>
+
+        <div style="position: relative; height: 300px; max-height: 300px">
+          <canvas id="historicalChart"></canvas>
+        </div>
+
+        <div class="status" id="historicalStatus" style="margin-top: 10px; text-align: center">
+          Loading historical data...
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 12px">
+        <h3>Summary Statistics</h3>
+        <p style="color: var(--muted); font-size: 13px; margin-top: 8px; margin-bottom: 16px;">
+          Aggregated metrics for selected time period
+        </p>
+
+        <div class="system-info-grid" id="summaryStats">
+          <div class="info-item">
+            <div class="info-label">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 12px">
+        <h3>Database Statistics</h3>
+        <div class="system-info-grid" id="dbStats">
+          <div class="info-item">
+            <div class="info-label">Loading...</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
+      const wallpapers = [
+        {
+          name: 'Aqua Bloom',
+          url: '/wallpapers/appleWater.jpg',
+          theme: { accent: '#5af8ff', accent2: '#4a9eff', bg: '#05060a', panel: 'rgba(16, 19, 30, 0.92)' }
+        },
+        {
+          name: 'Summit Neon',
+          url: '/wallpapers/climbingBears.jpg',
+          theme: { accent: '#8b5cf6', accent2: '#a78bfa', bg: '#0a0510', panel: 'rgba(20, 10, 30, 0.92)' }
+        },
+        {
+          name: 'Solar Flare',
+          url: '/wallpapers/dbz1.jpg',
+          theme: { accent: '#fbbf24', accent2: '#f59e0b', bg: '#0a0805', panel: 'rgba(30, 20, 10, 0.92)' }
+        },
+        {
+          name: 'Ember Strike',
+          url: '/wallpapers/dbz2.jpg',
+          theme: { accent: '#fb923c', accent2: '#f97316', bg: '#0a0605', panel: 'rgba(25, 15, 10, 0.92)' }
+        },
+        {
+          name: 'Red Circuit',
+          url: '/wallpapers/fma.jpg',
+          theme: { accent: '#ef4444', accent2: '#dc2626', bg: '#0a0505', panel: 'rgba(30, 10, 10, 0.92)' }
+        },
+        {
+          name: 'Galactic Arc',
+          url: '/wallpapers/galaxy.png',
+          theme: { accent: '#a855f7', accent2: '#c084fc', bg: '#050308', panel: 'rgba(15, 10, 25, 0.92)' }
+        },
+        {
+          name: 'Coastal Cyan',
+          url: '/wallpapers/hollywood.jpg',
+          theme: { accent: '#22d3ee', accent2: '#06b6d4', bg: '#05080a', panel: 'rgba(10, 20, 30, 0.92)' }
+        },
+        {
+          name: 'Emerald Whisper',
+          url: '/wallpapers/jonatan-pie.jpg',
+          theme: { accent: '#34d399', accent2: '#10b981', bg: '#05080a', panel: 'rgba(10, 25, 20, 0.92)' }
+        },
+        {
+          name: 'Midnight Arch',
+          url: '/wallpapers/kissArch.jpg',
+          theme: { accent: '#60a5fa', accent2: '#3b82f6', bg: '#050a0f', panel: 'rgba(10, 15, 30, 0.92)' }
+        },
+        {
+          name: 'Gold Rush',
+          url: '/wallpapers/opm.jpg',
+          theme: { accent: '#facc15', accent2: '#eab308', bg: '#0a0905', panel: 'rgba(30, 25, 10, 0.92)' }
+        },
+        {
+          name: 'Arctic Pulse',
+          url: '/wallpapers/penguinLinux.jpg',
+          theme: { accent: '#38bdf8', accent2: '#0ea5e9', bg: '#05080a', panel: 'rgba(10, 20, 30, 0.92)' }
+        },
+        {
+          name: 'Rose Street',
+          url: '/wallpapers/street.jpg',
+          theme: { accent: '#f472b6', accent2: '#ec4899', bg: '#0a0510', panel: 'rgba(25, 10, 25, 0.92)' }
+        },
+        {
+          name: 'Pasture Glow',
+          url: '/wallpapers/windowsXP.jpg',
+          theme: { accent: '#4ade80', accent2: '#22c55e', bg: '#050a05', panel: 'rgba(10, 30, 15, 0.92)' }
+        },
+      ];
+
+      let currentWallpaperIndex = 0;
+
+      function setWallpaper(index) {
+        const wallpaper = wallpapers[index % wallpapers.length];
+        const { url: wallpaperUrl, theme } = wallpaper;
+        const themeLabel = document.getElementById('themeLabel');
+
+        // Update CSS variables for the theme
+        document.documentElement.style.setProperty('--accent', theme.accent);
+        document.documentElement.style.setProperty('--accent-2', theme.accent2);
+        document.documentElement.style.setProperty('--bg', theme.bg);
+        document.documentElement.style.setProperty('--panel', theme.panel);
+        document.documentElement.style.setProperty('--panel-strong', theme.panel);
+
+        if (themeLabel) {
+          themeLabel.textContent = wallpaper.name || 'Live theme';
+        }
+
+        // Update wallpaper background
+        document.body.querySelector('style[data-wallpaper]')?.remove();
+        const style = document.createElement('style');
+        style.setAttribute('data-wallpaper', 'true');
+        style.textContent = `body::before { background-image: url('${wallpaperUrl}'); }`;
+        document.head.appendChild(style);
+      }
+
+      function cycleWallpaper() {
+        currentWallpaperIndex = (currentWallpaperIndex + 1) % wallpapers.length;
+        setWallpaper(currentWallpaperIndex);
+      }
+
+      // Set initial wallpaper based on hour of day for variety on refresh
+      currentWallpaperIndex = new Date().getHours() % wallpapers.length;
+      setWallpaper(currentWallpaperIndex);
+
+      // Cycle wallpaper every hour (3600000 ms)
+      setInterval(cycleWallpaper, 3600000);
+
+      const cycleButton = document.getElementById('cycleWallpaperBtn');
+      if (cycleButton) {
+        cycleButton.addEventListener('click', () => {
+          cycleWallpaper();
+          cycleButton.classList.add('active');
+          setTimeout(() => cycleButton.classList.remove('active'), 220);
+        });
+      }
+
       const fmtBytes = (bytes) => {
         if (!bytes && bytes !== 0) return '--';
         const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -320,11 +836,58 @@
         },
         windowSize: 120,
         charts: {},
+        currentMachine: 'localhost',
+        machines: [],
       };
+
+      async function fetchMachines() {
+        try {
+          const res = await fetch('/api/machines');
+          const data = await res.json();
+          state.machines = data.machines || [];
+
+          const selector = document.getElementById('machineSelector');
+          if (state.machines.length > 0) {
+            selector.innerHTML = state.machines.map(m => `
+              <option value="${m.machine_id}">${m.display_name || m.hostname || m.machine_id}${m.machine_id === 'localhost' ? ' (This Machine)' : ''}</option>
+            `).join('');
+
+            // Set initial machine to localhost if available, otherwise first machine
+            const localhostMachine = state.machines.find(m => m.machine_id === 'localhost');
+            state.currentMachine = localhostMachine ? 'localhost' : state.machines[0].machine_id;
+            selector.value = state.currentMachine;
+
+            // Setup change handler
+            selector.addEventListener('change', (e) => {
+              state.currentMachine = e.target.value;
+              console.log('Switched to machine:', state.currentMachine);
+
+              // Clear current data
+              state.labels = [];
+              state.series = {
+                cpu: [],
+                ram: [],
+                gpu: [],
+                netDown: [],
+                netUp: [],
+              };
+              drawAll();
+
+              // Refresh all data for new machine
+              fetchInfo();
+              if (typeof fetchHistoricalData === 'function') fetchHistoricalData();
+              if (typeof fetchDbStats === 'function') fetchDbStats();
+            });
+          }
+        } catch (err) {
+          console.error('Failed to fetch machines:', err);
+        }
+      }
 
       async function fetchInfo() {
         try {
-          const res = await fetch('/api/info');
+          const machineId = state.currentMachine || 'localhost';
+          const res = await fetch(`/api/info/${machineId}`);
           const info = await res.json();
           renderInfo(info);
         } catch (err) {
@@ -354,14 +917,30 @@
         document.getElementById('ramValue').textContent = fmtBytes(info.memory.used) + ' / ' + fmtBytes(info.memory.total);
         document.getElementById('ramFreeTag').textContent = fmtBytes(info.memory.free) + ' free';
 
-        const gpu = info.gpu && info.gpu.length ? info.gpu[0] : null;
-        if (gpu) {
-          document.getElementById('gpuValue').textContent = gpu.model;
-          document.getElementById('gpuUtilTag').textContent =
-            gpu.utilization != null ? `${gpu.utilization.toFixed(0)}% util` : 'utilization N/A';
+        // Show ALL GPUs or summary
+        if (info.gpu && info.gpu.length > 0) {
+          if (info.gpu.length === 1) {
+            const gpu = info.gpu[0];
+            document.getElementById('gpuValue').textContent = gpu.model || 'N/A';
+            document.getElementById('gpuUtilTag').textContent =
+              gpu.utilization != null ? `${gpu.utilization.toFixed(0)}% util` : 'util N/A';
+            document.getElementById('gpuVramTag').textContent =
+              gpu.vramMB != null ? `${(gpu.vramMB / 1024).toFixed(1)} GB VRAM` : 'VRAM N/A';
+          } else {
+            // Multiple GPUs - show count and max utilization
+            const utils = info.gpu.map(g => g.utilization).filter(u => u != null);
+            const maxUtil = utils.length > 0 ? Math.max(...utils) : null;
+            const totalVram = info.gpu.reduce((sum, g) => sum + (g.vramMB || 0), 0);
+            document.getElementById('gpuValue').textContent = `${info.gpu.length} GPUs (see details below)`;
+            document.getElementById('gpuUtilTag').textContent =
+              maxUtil != null ? `Max ${maxUtil.toFixed(0)}% util` : 'util N/A';
+            document.getElementById('gpuVramTag').textContent =
+              totalVram > 0 ? `${(totalVram / 1024).toFixed(1)} GB Total VRAM` : 'VRAM N/A';
+          }
         } else {
           document.getElementById('gpuValue').textContent = 'N/A';
           document.getElementById('gpuUtilTag').textContent = '--';
+          document.getElementById('gpuVramTag').textContent = '--';
         }
 
         if (info.temperatures) {
@@ -376,8 +955,8 @@
           document.getElementById('batteryValue').textContent = `${pct} (${charging})`;
           document.getElementById('batteryHealthTag').textContent = health;
         } else {
-          document.getElementById('batteryValue').textContent = 'No battery';
-          document.getElementById('batteryHealthTag').textContent = '--';
+          document.getElementById('batteryValue').textContent = 'Plugged In';
+          document.getElementById('batteryHealthTag').textContent = 'AC Power';
         }
 
         const statusEl = document.getElementById('statusText');
@@ -390,6 +969,8 @@
           statusEl.textContent = 'Power controls disabled. Set ENABLE_POWER_CONTROLS=true to allow.';
           rebootBtn.disabled = shutdownBtn.disabled = true;
         }
+
+        renderExtendedSystemInfo(info);
       }
 
       function initCharts() {
@@ -482,9 +1063,237 @@
       document.getElementById('shutdownBtn').addEventListener('click', () => sendPowerCommand('/api/power/shutdown'));
       document.getElementById('rebootBtn').addEventListener('click', () => sendPowerCommand('/api/power/reboot'));
 
+      async function fetchProcesses() {
+        try {
+          const res = await fetch('/api/processes');
+          const data = await res.json();
+          renderProcesses(data);
+        } catch (err) {
+          console.error('Failed to fetch processes', err);
+        }
+      }
+
+      function renderProcesses(data) {
+        document.getElementById('processTotal').textContent = data.total || 0;
+        document.getElementById('processRunning').textContent = data.running || 0;
+        document.getElementById('processSleeping').textContent = data.sleeping || 0;
+
+        const tbody = document.getElementById('processTableBody');
+        if (!data.list || data.list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px">No processes found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.list.map(proc => `
+          <tr>
+            <td>${proc.pid}</td>
+            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${proc.command || proc.name}">${proc.name}</td>
+            <td>${proc.cpu.toFixed(1)}%</td>
+            <td>${proc.mem.toFixed(1)}%</td>
+            <td>${proc.user || 'N/A'}</td>
+            <td>${proc.state || 'N/A'}</td>
+            <td><button class="kill-btn" onclick="killProcess(${proc.pid})">Kill</button></td>
+          </tr>
+        `).join('');
+      }
+
+      async function killProcess(pid) {
+        if (!confirm(`Kill process ${pid}? This action cannot be undone.`)) return;
+
+        try {
+          const res = await fetch('/api/processes/kill', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pid, signal: 'SIGTERM' }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.error || 'Failed to kill process');
+
+          alert(`Process ${pid} killed successfully`);
+          fetchProcesses();
+        } catch (err) {
+          alert(`Failed to kill process: ${err.message}`);
+        }
+      }
+
+      function renderExtendedSystemInfo(info) {
+        const container = document.getElementById('extendedSystemInfo');
+        const items = [];
+
+        // Load Averages
+        if (info.cpuLoad && info.cpuLoad.avgLoad) {
+          items.push({ label: 'Load Average (1/5/15 min)', value: `${info.cpuLoad.avgLoad.toFixed(2)}`, highlight: true });
+        }
+
+        // Per-core CPU loads
+        if (info.cpuLoad && info.cpuLoad.cpus && info.cpuLoad.cpus.length > 0) {
+          info.cpuLoad.cpus.forEach((core, idx) => {
+            items.push({ label: `CPU Core ${idx}`, value: `${core.load.toFixed(1)}%` });
+          });
+        }
+
+        // Per-core CPU frequencies
+        if (info.cpu && info.cpu.currentSpeed && info.cpu.currentSpeed.cores && info.cpu.currentSpeed.cores.length > 0) {
+          items.push({ label: 'CPU Frequency (Avg)', value: `${info.cpu.currentSpeed.avg.toFixed(2)} GHz`, highlight: true });
+          info.cpu.currentSpeed.cores.forEach((freq, idx) => {
+            items.push({ label: `Core ${idx} Freq`, value: `${freq.toFixed(2)} GHz` });
+          });
+        }
+
+        // Detailed Memory Breakdown
+        if (info.memory) {
+          items.push({ label: '--- MEMORY DETAILS ---', value: '', highlight: true });
+          items.push({ label: 'Total RAM', value: fmtBytes(info.memory.total) });
+          items.push({ label: 'Used RAM', value: `${fmtBytes(info.memory.used)} (${info.memory.usedPercent.toFixed(1)}%)` });
+          items.push({ label: 'Available', value: fmtBytes(info.memory.available) });
+          items.push({ label: 'Free', value: fmtBytes(info.memory.free) });
+          if (info.memory.buffers) items.push({ label: 'Buffers', value: fmtBytes(info.memory.buffers) });
+          if (info.memory.cached) items.push({ label: 'Cached', value: fmtBytes(info.memory.cached) });
+          if (info.memory.slab) items.push({ label: 'Slab', value: fmtBytes(info.memory.slab) });
+          if (info.memory.swapTotal > 0) {
+            items.push({ label: 'Swap Total', value: fmtBytes(info.memory.swapTotal) });
+            items.push({ label: 'Swap Used', value: `${fmtBytes(info.memory.swapUsed)} (${info.memory.swapPercent.toFixed(1)}%)` });
+          }
+        }
+
+        // ALL GPU detailed metrics
+        if (info.gpu && info.gpu.length > 0) {
+          items.push({ label: '--- GPU DETAILS (ALL) ---', value: '', highlight: true });
+          info.gpu.forEach((gpu, gpuIdx) => {
+            items.push({ label: `GPU ${gpuIdx}`, value: gpu.model, highlight: true });
+            items.push({ label: `GPU ${gpuIdx} Utilization`, value: gpu.utilization != null ? `${gpu.utilization.toFixed(1)}%` : 'N/A' });
+            items.push({ label: `GPU ${gpuIdx} Temperature`, value: gpu.temperature != null ? `${gpu.temperature.toFixed(0)}°C` : 'N/A' });
+            items.push({ label: `GPU ${gpuIdx} VRAM`, value: gpu.vramMB ? `${(gpu.vramMB / 1024).toFixed(1)} GB` : 'N/A' });
+
+            // NVIDIA nvtop metrics
+            if (gpu.nvtop) {
+              if (gpu.nvtop.powerUsageW != null && gpu.nvtop.powerLimitW != null) {
+                items.push({ label: `GPU ${gpuIdx} Power`, value: `${gpu.nvtop.powerUsageW}W / ${gpu.nvtop.powerLimitW}W` });
+              }
+              if (gpu.nvtop.fanSpeed != null) {
+                items.push({ label: `GPU ${gpuIdx} Fan`, value: `${gpu.nvtop.fanSpeed}%` });
+              }
+              if (gpu.nvtop.memUsedMB != null && gpu.nvtop.memTotalMB != null) {
+                items.push({ label: `GPU ${gpuIdx} Mem Usage`, value: `${gpu.nvtop.memUsedMB}MB / ${gpu.nvtop.memTotalMB}MB (${((gpu.nvtop.memUsedMB / gpu.nvtop.memTotalMB) * 100).toFixed(1)}%)` });
+              }
+            }
+
+            // AMD radeontop metrics
+            if (gpu.radeontop) {
+              if (gpu.radeontop.graphicsPipe != null) {
+                items.push({ label: `GPU ${gpuIdx} Graphics Pipe`, value: `${gpu.radeontop.graphicsPipe.toFixed(1)}%` });
+              }
+              if (gpu.radeontop.coreClockMHz != null) {
+                items.push({ label: `GPU ${gpuIdx} Core Clock`, value: `${gpu.radeontop.coreClockMHz.toFixed(0)} MHz (${gpu.radeontop.coreClockUtil.toFixed(1)}%)` });
+              }
+              if (gpu.radeontop.memClockMHz != null) {
+                items.push({ label: `GPU ${gpuIdx} Mem Clock`, value: `${gpu.radeontop.memClockMHz.toFixed(0)} MHz (${gpu.radeontop.memClockUtil.toFixed(1)}%)` });
+              }
+              if (gpu.radeontop.vramUtilization != null) {
+                items.push({ label: `GPU ${gpuIdx} VRAM Util`, value: `${gpu.radeontop.vramUtilization.toFixed(1)}%` });
+              }
+              if (gpu.radeontop.vramUsedMB != null) {
+                items.push({ label: `GPU ${gpuIdx} VRAM Used`, value: `${gpu.radeontop.vramUsedMB.toFixed(0)} MB` });
+              }
+            }
+          });
+        }
+
+        // Disk I/O
+        if (info.diskIO) {
+          items.push({ label: '--- DISK I/O ---', value: '', highlight: true });
+          items.push({ label: 'Read I/O/sec', value: info.diskIO.rIO_sec != null ? `${info.diskIO.rIO_sec.toFixed(0)} ops/s` : 'N/A' });
+          items.push({ label: 'Write I/O/sec', value: info.diskIO.wIO_sec != null ? `${info.diskIO.wIO_sec.toFixed(0)} ops/s` : 'N/A' });
+          items.push({ label: 'Total I/O', value: info.diskIO.tIO != null ? `${info.diskIO.tIO.toLocaleString()} ops` : 'N/A' });
+          items.push({ label: 'I/O Time', value: info.diskIO.ms != null ? `${info.diskIO.ms} ms` : 'N/A' });
+        }
+
+        // Network Stats (per interface)
+        if (info.networkStats && info.networkStats.length > 0) {
+          items.push({ label: '--- NETWORK (PER INTERFACE) ---', value: '', highlight: true });
+          info.networkStats.forEach(stat => {
+            if (!stat.iface.startsWith('lo')) {  // Skip loopback
+              items.push({ label: `${stat.iface}`, value: stat.operstate || 'N/A', highlight: true });
+              items.push({ label: `${stat.iface} RX`, value: `${fmtBytes(stat.rx_bytes)} (${(stat.rx_sec / 1024).toFixed(1)} KB/s)` });
+              items.push({ label: `${stat.iface} TX`, value: `${fmtBytes(stat.tx_bytes)} (${(stat.tx_sec / 1024).toFixed(1)} KB/s)` });
+              if (stat.rx_errors > 0 || stat.tx_errors > 0) {
+                items.push({ label: `${stat.iface} Errors`, value: `RX: ${stat.rx_errors}, TX: ${stat.tx_errors}` });
+              }
+              if (stat.rx_dropped > 0 || stat.tx_dropped > 0) {
+                items.push({ label: `${stat.iface} Dropped`, value: `RX: ${stat.rx_dropped}, TX: ${stat.tx_dropped}` });
+              }
+            }
+          });
+        }
+
+        if (info.cpu) {
+          if (info.cpu.vendor) items.push({ label: 'CPU Vendor', value: info.cpu.vendor });
+          if (info.cpu.family) items.push({ label: 'CPU Family', value: info.cpu.family });
+          if (info.cpu.physicalCores) items.push({ label: 'Physical Cores', value: info.cpu.physicalCores });
+          if (info.cpu.speedMin) items.push({ label: 'CPU Min Speed', value: `${info.cpu.speedMin} GHz` });
+          if (info.cpu.speedMax) items.push({ label: 'CPU Max Speed', value: `${info.cpu.speedMax} GHz` });
+          if (info.cpu.cache && info.cpu.cache.l3) items.push({ label: 'L3 Cache', value: fmtBytes(info.cpu.cache.l3) });
+        }
+
+        if (info.cpuLoad) {
+          items.push({ label: 'Current Load', value: `${info.cpuLoad.currentLoad.toFixed(1)}%` });
+          items.push({ label: 'User Load', value: `${info.cpuLoad.currentLoadUser.toFixed(1)}%` });
+          items.push({ label: 'System Load', value: `${info.cpuLoad.currentLoadSystem.toFixed(1)}%` });
+          items.push({ label: 'Idle', value: `${info.cpuLoad.currentLoadIdle.toFixed(1)}%` });
+        }
+
+        if (info.memory) {
+          if (info.memory.swapTotal) items.push({ label: 'Swap Total', value: fmtBytes(info.memory.swapTotal) });
+          if (info.memory.swapUsed) items.push({ label: 'Swap Used', value: fmtBytes(info.memory.swapUsed) });
+        }
+
+        if (info.system) {
+          if (info.system.manufacturer) items.push({ label: 'Manufacturer', value: info.system.manufacturer });
+          if (info.system.virtual !== undefined) items.push({ label: 'Virtual Machine', value: info.system.virtual ? 'Yes' : 'No' });
+          if (info.system.uuid) items.push({ label: 'System UUID', value: info.system.uuid });
+        }
+
+        if (info.versions) {
+          if (info.versions.kernel) items.push({ label: 'Kernel Version', value: info.versions.kernel });
+          if (info.versions.node) items.push({ label: 'Node.js', value: info.versions.node });
+          if (info.versions.npm) items.push({ label: 'NPM', value: info.versions.npm });
+        }
+
+        if (info.disk && info.disk.filesystems) {
+          info.disk.filesystems.forEach((fs, idx) => {
+            if (idx < 3) {
+              items.push({ label: `Disk ${fs.mount}`, value: `${fmtBytes(fs.used)} / ${fmtBytes(fs.size)} (${fs.use.toFixed(0)}%)` });
+            }
+          });
+        }
+
+        if (info.network) {
+          info.network.forEach((iface, idx) => {
+            if (idx < 2 && !iface.internal) {
+              items.push({ label: `Network ${iface.iface}`, value: iface.ip4 || iface.ip6 || 'N/A' });
+              if (iface.speed && iface.speed > 0) items.push({ label: `${iface.iface} Speed`, value: `${iface.speed} Mbps` });
+            }
+          });
+        }
+
+        container.innerHTML = items.map(item => `
+          <div class="info-item">
+            <div class="info-label${item.highlight ? ' highlight' : ''}">${item.label}</div>
+            <div class="info-value${item.highlight ? ' highlight' : ''}">${item.value}</div>
+          </div>
+        `).join('');
+      }
+
       initCharts();
-      fetchInfo();
-      connectWs();
+
+      // Fetch machines first, then other data
+      fetchMachines().then(() => {
+        fetchInfo();
+        connectWs();
+        fetchProcesses();
+        setInterval(fetchProcesses, 5000);
+      });
 
       function resizeCanvas(canvas) {
         if (!canvas) return;
@@ -600,6 +1409,356 @@
         tip.style.left = `${rect.left + point.x / (window.devicePixelRatio || 1) + 12}px`;
         tip.style.top = `${rect.top + point.y / (window.devicePixelRatio || 1) - 10}px`;
       }
+
+      // Historical data functionality
+      let historicalChart = null;
+
+      async function fetchHistoricalData() {
+        const timeRange = document.getElementById('timeRangeSelect').value;
+        const metric = document.getElementById('metricSelect').value;
+        const statusEl = document.getElementById('historicalStatus');
+
+        statusEl.textContent = 'Loading...';
+
+        try {
+          const now = Date.now();
+          const ranges = {
+            '24h': 24 * 60 * 60 * 1000,
+            '7d': 7 * 24 * 60 * 60 * 1000,
+            '30d': 30 * 24 * 60 * 60 * 1000,
+            '90d': 90 * 24 * 60 * 60 * 1000
+          };
+
+          const start = now - ranges[timeRange];
+          const end = now;
+
+          const response = await fetch(`/api/metrics/range?start=${start}&end=${end}&granularity=auto&machine_id=${state.currentMachine}`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch data');
+          }
+
+          renderHistoricalChart(data, metric);
+          statusEl.textContent = `Showing ${data.count} data points (${data.granularity} granularity)`;
+
+          // Also fetch and update summary stats
+          fetchSummaryStats();
+        } catch (err) {
+          console.error('Failed to fetch historical data:', err);
+          statusEl.textContent = `Error: ${err.message}`;
+        }
+      }
+
+      function renderHistoricalChart(data, metric) {
+        const ctx = document.getElementById('historicalChart').getContext('2d');
+
+        // Destroy existing chart
+        if (historicalChart) {
+          historicalChart.destroy();
+        }
+
+        let datasets = [];
+        const isAggregated = data.granularity !== 'raw';
+
+        switch (metric) {
+          case 'cpu':
+            if (isAggregated) {
+              datasets = [
+                {
+                  label: 'CPU Load Avg %',
+                  data: data.metrics.cpu_load.map(d => ({ x: d.timestamp, y: d.avg })),
+                  borderColor: '#5af8ff',
+                  backgroundColor: 'rgba(90, 248, 255, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                },
+                {
+                  label: 'CPU Load Max %',
+                  data: data.metrics.cpu_load.map(d => ({ x: d.timestamp, y: d.max })),
+                  borderColor: '#ff6b6b',
+                  backgroundColor: 'rgba(255, 107, 107, 0.05)',
+                  fill: false,
+                  borderDash: [5, 5]
+                }
+              ];
+            } else {
+              datasets = [{
+                label: 'CPU Load %',
+                data: data.metrics.cpu_load.map(d => ({ x: d.timestamp, y: d.value })),
+                borderColor: '#5af8ff',
+                backgroundColor: 'rgba(90, 248, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+              }];
+            }
+            break;
+
+          case 'ram':
+            if (isAggregated) {
+              datasets = [{
+                label: 'RAM Usage Avg %',
+                data: data.metrics.ram_percent.map(d => ({ x: d.timestamp, y: d.avg })),
+                borderColor: '#6bf7c4',
+                backgroundColor: 'rgba(107, 247, 196, 0.1)',
+                fill: true,
+                tension: 0.3
+              }];
+            } else {
+              datasets = [{
+                label: 'RAM Usage %',
+                data: data.metrics.ram_percent.map(d => ({ x: d.timestamp, y: d.value })),
+                borderColor: '#6bf7c4',
+                backgroundColor: 'rgba(107, 247, 196, 0.1)',
+                fill: true,
+                tension: 0.3
+              }];
+            }
+            break;
+
+          case 'gpu':
+            if (isAggregated) {
+              datasets = [{
+                label: 'GPU Util Avg %',
+                data: data.metrics.gpu_utilization.map(d => ({ x: d.timestamp, y: d.avg })).filter(d => d.y != null),
+                borderColor: '#9a5cff',
+                backgroundColor: 'rgba(154, 92, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+              }];
+            } else {
+              datasets = [{
+                label: 'GPU Utilization %',
+                data: data.metrics.gpu_utilization.map(d => ({ x: d.timestamp, y: d.value })).filter(d => d.y != null),
+                borderColor: '#9a5cff',
+                backgroundColor: 'rgba(154, 92, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+              }];
+            }
+            break;
+
+          case 'temp':
+            if (isAggregated) {
+              datasets = [
+                {
+                  label: 'CPU Temp Avg °C',
+                  data: data.metrics.cpu_temp.map(d => ({ x: d.timestamp, y: d.avg })).filter(d => d.y != null),
+                  borderColor: '#fbbf24',
+                  backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                },
+                {
+                  label: 'GPU Temp Avg °C',
+                  data: data.metrics.gpu_temp.map(d => ({ x: d.timestamp, y: d.avg })).filter(d => d.y != null),
+                  borderColor: '#f472b6',
+                  backgroundColor: 'rgba(244, 114, 182, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                }
+              ];
+            } else {
+              datasets = [
+                {
+                  label: 'CPU Temp °C',
+                  data: data.metrics.cpu_temp.map(d => ({ x: d.timestamp, y: d.value })).filter(d => d.y != null),
+                  borderColor: '#fbbf24',
+                  backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                },
+                {
+                  label: 'GPU Temp °C',
+                  data: data.metrics.gpu_temp.map(d => ({ x: d.timestamp, y: d.value })).filter(d => d.y != null),
+                  borderColor: '#f472b6',
+                  backgroundColor: 'rgba(244, 114, 182, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                }
+              ];
+            }
+            break;
+        }
+
+        historicalChart = new Chart(ctx, {
+          type: 'line',
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            },
+            plugins: {
+              legend: {
+                display: true,
+                labels: { color: '#e8f1ff', font: { family: 'Space Grotesk' } }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(15, 16, 26, 0.95)',
+                titleColor: '#5af8ff',
+                bodyColor: '#e8f1ff',
+                borderColor: '#5af8ff',
+                borderWidth: 1
+              },
+              zoom: {
+                pan: { enabled: true, mode: 'x' },
+                zoom: {
+                  wheel: { enabled: true },
+                  pinch: { enabled: true },
+                  mode: 'x'
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: data.granularity === 'raw' ? 'hour' : data.granularity === 'hourly' ? 'day' : 'week'
+                },
+                grid: { color: 'rgba(90, 248, 255, 0.08)' },
+                ticks: { color: '#7f8ca5' }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(90, 248, 255, 0.08)' },
+                ticks: { color: '#7f8ca5' }
+              }
+            }
+          }
+        });
+      }
+
+      async function fetchSummaryStats() {
+        const timeRange = document.getElementById('timeRangeSelect').value;
+
+        try {
+          const response = await fetch(`/api/metrics/summary?period=${timeRange}&machine_id=${state.currentMachine}`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch stats');
+          }
+
+          renderSummaryStats(data);
+        } catch (err) {
+          console.error('Failed to fetch summary stats:', err);
+        }
+      }
+
+      function renderSummaryStats(data) {
+        const container = document.getElementById('summaryStats');
+        const items = [];
+
+        if (data.cpu) {
+          items.push({ label: 'CPU Avg', value: `${data.cpu.avg.toFixed(1)}%` });
+          items.push({ label: 'CPU Min', value: `${data.cpu.min.toFixed(1)}%` });
+          items.push({ label: 'CPU Max', value: `${data.cpu.max.toFixed(1)}%` });
+          items.push({ label: 'CPU P95', value: `${data.cpu.p95.toFixed(1)}%`, highlight: true });
+        }
+
+        if (data.ram) {
+          items.push({ label: 'RAM Avg', value: `${data.ram.avg.toFixed(1)}%` });
+          items.push({ label: 'RAM Max', value: `${data.ram.max.toFixed(1)}%` });
+        }
+
+        if (data.gpu && data.gpu.avg) {
+          items.push({ label: 'GPU Avg', value: `${data.gpu.avg.toFixed(1)}%` });
+          items.push({ label: 'GPU Max', value: `${data.gpu.max.toFixed(1)}%` });
+        }
+
+        if (data.network) {
+          items.push({ label: 'Total Downloaded', value: `${data.network.total_rx_gb.toFixed(2)} GB` });
+          items.push({ label: 'Total Uploaded', value: `${data.network.total_tx_gb.toFixed(2)} GB` });
+        }
+
+        items.push({ label: 'Period', value: data.period });
+        items.push({ label: 'Samples', value: data.sample_count.toLocaleString() });
+
+        container.innerHTML = items.map(item => `
+          <div class="info-item">
+            <div class="info-label${item.highlight ? ' highlight' : ''}">${item.label}</div>
+            <div class="info-value${item.highlight ? ' highlight' : ''}">${item.value}</div>
+          </div>
+        `).join('');
+      }
+
+      async function exportCSV() {
+        const timeRange = document.getElementById('timeRangeSelect').value;
+
+        try {
+          const now = Date.now();
+          const ranges = {
+            '24h': 24 * 60 * 60 * 1000,
+            '7d': 7 * 24 * 60 * 60 * 1000,
+            '30d': 30 * 24 * 60 * 60 * 1000,
+            '90d': 90 * 24 * 60 * 60 * 1000
+          };
+
+          const start = now - ranges[timeRange];
+          const end = now;
+
+          const url = `/api/metrics/export/csv?start=${start}&end=${end}&granularity=auto&machine_id=${state.currentMachine}`;
+          window.open(url, '_blank');
+        } catch (err) {
+          console.error('Failed to export CSV:', err);
+          alert('Failed to export CSV: ' + err.message);
+        }
+      }
+
+      async function fetchDbStats() {
+        try {
+          const response = await fetch(`/api/data/stats?machine_id=${state.currentMachine}`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch stats');
+          }
+
+          renderDbStats(data);
+        } catch (err) {
+          console.error('Failed to fetch DB stats:', err);
+        }
+      }
+
+      function renderDbStats(data) {
+        const container = document.getElementById('dbStats');
+        const items = [
+          { label: 'Raw Metrics', value: data.raw_count.toLocaleString() },
+          { label: 'Hourly Aggregates', value: data.hourly_count.toLocaleString() },
+          { label: 'Daily Aggregates', value: data.daily_count.toLocaleString() },
+          { label: 'Database Size', value: `${data.db_size_mb} MB`, highlight: true },
+          { label: 'Oldest Raw Data', value: data.oldest_raw ? new Date(data.oldest_raw).toLocaleDateString() : 'N/A' },
+          { label: 'Oldest Hourly', value: data.oldest_hourly ? new Date(data.oldest_hourly).toLocaleDateString() : 'N/A' },
+          { label: 'Oldest Daily', value: data.oldest_daily ? new Date(data.oldest_daily).toLocaleDateString() : 'N/A' },
+          { label: 'Retention (Raw)', value: `${data.estimated_retention_days.raw} days` },
+          { label: 'Retention (Hourly)', value: `${data.estimated_retention_days.hourly} days` },
+          { label: 'Retention (Daily)', value: data.estimated_retention_days.daily }
+        ];
+
+        container.innerHTML = items.map(item => `
+          <div class="info-item">
+            <div class="info-label${item.highlight ? ' highlight' : ''}">${item.label}</div>
+            <div class="info-value${item.highlight ? ' highlight' : ''}">${item.value}</div>
+          </div>
+        `).join('');
+      }
+
+      // Event listeners for historical data
+      document.getElementById('timeRangeSelect').addEventListener('change', fetchHistoricalData);
+      document.getElementById('metricSelect').addEventListener('change', fetchHistoricalData);
+      document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+
+      // Fetch initial historical data and stats after page load
+      setTimeout(() => {
+        fetchHistoricalData();
+        fetchDbStats();
+      }, 2000);
+
+      // Refresh DB stats every 30 seconds
+      setInterval(fetchDbStats, 30000);
     </script>
   </body>
 </html>

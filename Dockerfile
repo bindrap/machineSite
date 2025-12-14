@@ -1,5 +1,14 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 WORKDIR /app
+
+# Install GPU monitoring tools
+RUN apt-get update && apt-get install -y \
+    radeontop \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Note: nvtop requires building from source or NVIDIA repos
+# For NVIDIA GPU support, install nvtop separately or use NVIDIA container toolkit
 
 COPY package*.json ./
 RUN npm install --production

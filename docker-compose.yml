@@ -1,17 +1,26 @@
-version: '3.9'
-
 services:
   machine-site:
     build: .
     container_name: machine-site
     ports:
       - '3000:3000'
+    volumes:
+      - ./data:/app/data
     environment:
       # Flip to true to enable shutdown/reboot endpoints (requires privileges inside container).
       - ENABLE_POWER_CONTROLS=false
+      # Machine identification
+      - MACHINE_ID=localhost
+      - MACHINE_DISPLAY_NAME=Primary Server
       # Optional ISO string to display as machine birthdate, e.g. 2020-06-01T00:00:00Z
-      - MACHINE_BIRTHDATE=
+      - MACHINE_BIRTHDATE=2025-12-05T18:09:30-05:00
+      # Database path (persisted in volume)
+      - DB_PATH=/app/data/metrics.db
+      # Data retention settings (in days, 0 = unlimited)
+      - RETENTION_DAYS_RAW=7
+      - RETENTION_DAYS_HOURLY=90
+      - RETENTION_DAYS_DAILY=0
     # Uncomment to let the container read host metrics more directly (Linux only).
-    # pid: host
-    # network_mode: host
-    # privileged: true
+    pid: host
+    network_mode: host
+    privileged: true
