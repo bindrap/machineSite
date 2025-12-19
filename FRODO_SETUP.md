@@ -55,7 +55,7 @@ npm install --production
 
 ```bash
 node agent.js \
-  --server http://100.115.59.14:3000 \
+  --server http://100.115.59.14:3005 \
   --machine-id frodo \
   --display-name "Frodo (Remote Machine)"
 ```
@@ -78,7 +78,7 @@ After=network.target
 Type=simple
 User=YOUR_USERNAME
 WorkingDirectory=/home/YOUR_USERNAME/machine-agent
-Environment="SERVER_URL=http://100.115.59.14:3000"
+Environment="SERVER_URL=http://100.115.59.14:3005"
 Environment="MACHINE_ID=frodo"
 Environment="DISPLAY_NAME=Frodo (Remote Machine)"
 Environment="INTERVAL=2000"
@@ -105,14 +105,14 @@ On **legolas** server:
 
 ```bash
 # Check if frodo is registered
-curl http://localhost:3000/api/machines | python3 -m json.tool
+curl http://localhost:3005/api/machines | python3 -m json.tool
 
 # Check if frodo is sending metrics
 sqlite3 ~/Documents/machineSite/data/metrics.db \
   "SELECT COUNT(*) FROM metrics_raw WHERE machine_id='frodo' AND timestamp > $(date -d '5 minutes ago' +%s)000;"
 ```
 
-On the **webpage** (http://100.115.59.14:3000):
+On the **webpage** (http://100.115.59.14:3005):
 - Frodo should appear in the machine dropdown
 - Selecting frodo should show its metrics
 
@@ -127,7 +127,7 @@ sudo journalctl -u machine-agent -f
 ### No data showing on dashboard
 1. Check agent is running: `sudo systemctl status machine-agent`
 2. Check network connectivity: `ping 100.115.59.14`
-3. Test API endpoint: `curl http://100.115.59.14:3000/api/machines`
+3. Test API endpoint: `curl http://100.115.59.14:3005/api/machines`
 4. Check agent logs: `sudo journalctl -u machine-agent -n 50`
 
 ### GPU metrics not showing

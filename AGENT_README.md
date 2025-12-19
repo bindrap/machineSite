@@ -15,14 +15,14 @@ This agent collects system metrics from a remote machine and sends them to the c
 ### Basic Usage
 
 ```bash
-node agent.js --server http://YOUR_SERVER_IP:3000 --machine-id frodo
+node agent.js --server http://YOUR_SERVER_IP:3005 --machine-id frodo
 ```
 
 ### With Custom Display Name
 
 ```bash
 node agent.js \
-  --server http://100.68.134.68:3000 \
+  --server http://100.68.134.68:3005 \
   --machine-id frodo \
   --display-name "Frodo (Gaming PC)"
 ```
@@ -30,7 +30,7 @@ node agent.js \
 ### Using Environment Variables
 
 ```bash
-export SERVER_URL=http://100.68.134.68:3000
+export SERVER_URL=http://100.68.134.68:3005
 export MACHINE_ID=frodo
 export DISPLAY_NAME="Frodo"
 node agent.js
@@ -61,7 +61,7 @@ After=network.target
 Type=simple
 User=your-user
 WorkingDirectory=/path/to/machineSite
-Environment="SERVER_URL=http://100.68.134.68:3000"
+Environment="SERVER_URL=http://100.68.134.68:3005"
 Environment="MACHINE_ID=frodo"
 Environment="DISPLAY_NAME=Frodo"
 ExecStart=/usr/bin/node /path/to/machineSite/agent.js
@@ -85,7 +85,7 @@ sudo systemctl status machine-agent
 
 ```bash
 pm2 start agent.js --name machine-agent -- \
-  --server http://100.68.134.68:3000 \
+  --server http://100.68.134.68:3005 \
   --machine-id frodo \
   --display-name "Frodo"
 
@@ -109,7 +109,7 @@ You should see messages like:
 ```
 Starting agent for machine: frodo
 Display name: Frodo
-Server: http://100.68.134.68:3000
+Server: http://100.68.134.68:3005
 Collection interval: 2000ms
 Agent started, collecting metrics...
 Submitted 30 metrics to server
@@ -121,12 +121,12 @@ Submitted 30 metrics to server
 
 - Ensure the server URL is correct and accessible from the remote machine
 - Check firewall rules allow connections to port 3000
-- Verify the server is running: `curl http://YOUR_SERVER_IP:3000/api/machines`
+- Verify the server is running: `curl http://YOUR_SERVER_IP:3005/api/machines`
 
 ### No metrics appearing
 
 - Check agent logs for errors
-- Verify the machine is registered: `curl http://YOUR_SERVER_IP:3000/api/machines`
+- Verify the machine is registered: `curl http://YOUR_SERVER_IP:3005/api/machines`
 - Check server logs for errors
 
 ### Permission denied errors

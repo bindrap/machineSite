@@ -132,7 +132,7 @@ echo ""
 if [ $SUCCESS -gt 0 ]; then
     echo "Checking registered machines..."
     sleep 2
-    curl -s http://localhost:3000/api/machines | grep -o '"machine_id":"[^"]*"' | sed 's/"machine_id":"\([^"]*\)"/  ✓ \1/'
+    curl -s http://localhost:3005/api/machines | grep -o '"machine_id":"[^"]*"' | sed 's/"machine_id":"\([^"]*\)"/  ✓ \1/'
     echo ""
-    echo -e "${GREEN}Dashboard: http://localhost:3000${NC}"
+    echo -e "${GREEN}Dashboard: http://localhost:3005${NC}"
 fi

@@ -25,7 +25,7 @@ router.get('/:machine_id', async (req, res) => {
     // If requesting localhost or current machine, get live system info
     if (machine_id === 'localhost' || machine_id === CURRENT_MACHINE_ID) {
       // Get this from the main /api/info endpoint
-      const mainInfoResponse = await fetch('http://localhost:3000/api/info');
+      const mainInfoResponse = await fetch('http://localhost:3005/api/info');
       const info = await mainInfoResponse.json();
       return res.json({ ...info, machine_id });
     }

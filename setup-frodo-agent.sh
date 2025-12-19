@@ -7,7 +7,7 @@ echo "========================================="
 echo ""
 
 # Configuration
-SERVER_URL="${SERVER_URL:-http://100.115.59.14:3000}"
+SERVER_URL="${SERVER_URL:-http://100.115.59.14:3005}"
 MACHINE_ID="frodo"
 DISPLAY_NAME="Frodo (Remote Machine)"
 INSTALL_DIR="$HOME/machine-agent"

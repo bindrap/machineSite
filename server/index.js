@@ -12,7 +12,7 @@ const { MetricsWriter } = require('./metrics-writer');
 const { MetricsAggregator } = require('./aggregator');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3005;
 const powerControlsEnabled = String(process.env.ENABLE_POWER_CONTROLS || '').toLowerCase() === 'true';
 const machineId = process.env.MACHINE_ID || os.hostname() || 'localhost';
 

@@ -12,7 +12,7 @@ After=network.target
 Type=simple
 User=parteek
 WorkingDirectory=/home/parteek
-Environment="SERVER_URL=http://100.115.59.14:3000"
+Environment="SERVER_URL=http://100.115.59.14:3005"
 Environment="MACHINE_ID=frodo"
 Environment="DISPLAY_NAME=Frodo"
 ExecStart=/usr/bin/node /home/parteek/agent.js

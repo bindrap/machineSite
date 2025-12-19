@@ -19,9 +19,9 @@ You now have a fully functional multi-machine monitoring system running on **Leg
 ## Access Your Dashboard
 
 The dashboard is now running at:
-- **Local**: http://localhost:3000
-- **Network**: http://100.115.59.14:3000 (via Tailscale)
-- **LAN**: http://192.168.1.138:3000 (if on same network)
+- **Local**: http://localhost:3005
+- **Network**: http://100.115.59.14:3005 (via Tailscale)
+- **LAN**: http://192.168.1.138:3005 (if on same network)
 
 ## Setting Up Agents on Frodo, Sauron, and Gandalf
 
@@ -79,13 +79,13 @@ You should see:
 Migration applied: 001-initial.sql
 Migration applied: 002-add-machines.sql
 Database initialized at /app/data/metrics.db
-Machine dashboard running on http://localhost:3000
+Machine dashboard running on http://localhost:3005
 ```
 
 ### 2. Check Registered Machines
 
 ```bash
-curl http://localhost:3000/api/machines
+curl http://localhost:3005/api/machines
 ```
 
 You should see all registered machines (legolas, and any agents you've set up).
@@ -117,7 +117,7 @@ Submitted 30 metrics to server
 
 ### 5. Access the Web Dashboard
 
-Open http://localhost:3000 (or http://100.115.59.14:3000 from another machine)
+Open http://localhost:3005 (or http://100.115.59.14:3005 from another machine)
 
 You should see:
 - A dropdown in the top-right corner to select different machines
@@ -208,7 +208,7 @@ Database is stored in: `~/Documents/machineSite/data/metrics.db`
 2. Verify the server is accessible:
    ```bash
    # From the agent machine
-   curl http://100.115.59.14:3000/api/machines
+   curl http://100.115.59.14:3005/api/machines
    ```
 
 3. Check Tailscale connectivity:
@@ -230,7 +230,7 @@ Database is stored in: `~/Documents/machineSite/data/metrics.db`
 
 3. Verify machine is registered:
    ```bash
-   curl http://localhost:3000/api/machines
+   curl http://localhost:3005/api/machines
    ```
 
 ### Dashboard shows "localhost" instead of machine names
@@ -277,7 +277,7 @@ For more detailed information, see:
 ## Summary
 
 ✅ Your system is now running!
-✅ Web dashboard: http://localhost:3000
+✅ Web dashboard: http://localhost:3005
 ✅ To add agents: `./setup-agents.sh`
 ✅ Check status: `docker compose ps`
 

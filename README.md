@@ -30,8 +30,8 @@ docker compose up -d
 ```
 
 The dashboard is now available at:
-- http://localhost:3000
-- http://100.115.59.14:3000 (Tailscale)
+- http://localhost:3005
+- http://100.115.59.14:3005 (Tailscale)
 
 ### 2. Deploy Agents to Remote Machines
 
@@ -43,7 +43,7 @@ See `QUICKSTART.md` for detailed agent deployment instructions.
 
 ## Dashboard Usage
 
-1. Open http://localhost:3000 in your browser
+1. Open http://localhost:3005 in your browser
 2. Use the **machine selector dropdown** (top-right) to switch between machines
 3. View real-time metrics updating every 2 seconds
 4. Zoom/pan on charts to explore historical data
@@ -133,8 +133,8 @@ sudo journalctl -u machine-agent -f
 
 ### No metrics showing for a machine
 ```bash
-curl http://localhost:3000/api/machines
-curl "http://localhost:3000/api/data/stats?machine_id=frodo"
+curl http://localhost:3005/api/machines
+curl "http://localhost:3005/api/data/stats?machine_id=frodo"
 ```
 
 ## Development
@@ -144,7 +144,7 @@ npm install
 npm run dev  # Start with nodemon
 ```
 
-Then visit http://localhost:3000
+Then visit http://localhost:3005
 
 ## Documentation
 

@@ -7,7 +7,7 @@
  * Run this script on remote machines to monitor them from a central dashboard.
  *
  * Usage:
- *   node agent.js --server http://192.168.1.100:3000 --machine-id frodo
+ *   node agent.js --server http://192.168.1.100:3005 --machine-id frodo
  *
  * Environment variables:
  *   SERVER_URL - The URL of the central monitoring server
@@ -36,7 +36,7 @@ const BATCH_SIZE = parseInt(getArg('batch-size') || process.env.BATCH_SIZE || '3
 
 if (!SERVER_URL) {
   console.error('Error: SERVER_URL is required. Use --server or set SERVER_URL environment variable.');
-  console.error('Example: node agent.js --server http://192.168.1.100:3000 --machine-id frodo');
+  console.error('Example: node agent.js --server http://192.168.1.100:3005 --machine-id frodo');
   process.exit(1);
 }
 

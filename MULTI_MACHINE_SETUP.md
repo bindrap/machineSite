@@ -52,7 +52,7 @@ The server will:
    ```bash
    # Replace YOUR_SERVER_IP with the IP of your central server
    node agent.js \
-     --server http://YOUR_SERVER_IP:3000 \
+     --server http://YOUR_SERVER_IP:3005 \
      --machine-id frodo \
      --display-name "Frodo"
    ```
@@ -75,7 +75,7 @@ The server will:
    Type=simple
    User=your-user
    WorkingDirectory=/home/your-user
-   Environment="SERVER_URL=http://YOUR_SERVER_IP:3000"
+   Environment="SERVER_URL=http://YOUR_SERVER_IP:3005"
    Environment="MACHINE_ID=frodo"
    Environment="DISPLAY_NAME=Frodo"
    ExecStart=/usr/bin/node /home/your-user/agent.js
@@ -103,7 +103,7 @@ The server will:
    ```
    Starting agent for machine: frodo
    Display name: Frodo
-   Server: http://YOUR_SERVER_IP:3000
+   Server: http://YOUR_SERVER_IP:3005
    Agent started, collecting metrics...
    Submitted 30 metrics to server
    ```
@@ -118,7 +118,7 @@ npm install -g pm2
 
 # Start the agent
 pm2 start agent.js --name machine-agent -- \
-  --server http://YOUR_SERVER_IP:3000 \
+  --server http://YOUR_SERVER_IP:3005 \
   --machine-id frodo \
   --display-name "Frodo"
 
@@ -133,7 +133,7 @@ pm2 startup
 
 1. **Check the machines list:**
    ```bash
-   curl http://YOUR_SERVER_IP:3000/api/machines
+   curl http://YOUR_SERVER_IP:3005/api/machines
    ```
 
    You should see both machines:
@@ -157,7 +157,7 @@ pm2 startup
    ```
 
 2. **Open the web dashboard:**
-   - Navigate to `http://YOUR_SERVER_IP:3000`
+   - Navigate to `http://YOUR_SERVER_IP:3005`
    - You should see a machine selector dropdown in the top-right
    - Select "Frodo" to view its metrics
 
@@ -200,7 +200,7 @@ pm2 startup
 3. Test connectivity:
    ```bash
    # From frodo
-   curl http://YOUR_SERVER_IP:3000/api/machines
+   curl http://YOUR_SERVER_IP:3005/api/machines
    ```
 
 ### Frodo not appearing in machine selector
@@ -219,7 +219,7 @@ pm2 startup
    ```
 3. Verify the machine is registered:
    ```bash
-   curl http://YOUR_SERVER_IP:3000/api/machines
+   curl http://YOUR_SERVER_IP:3005/api/machines
    ```
 
 ### No metrics showing for frodo
@@ -229,7 +229,7 @@ pm2 startup
 **Solutions:**
 1. Check database stats for frodo:
    ```bash
-   curl "http://YOUR_SERVER_IP:3000/api/data/stats?machine_id=frodo"
+   curl "http://YOUR_SERVER_IP:3005/api/data/stats?machine_id=frodo"
    ```
 2. Check server logs:
    ```bash
@@ -258,7 +258,7 @@ To monitor additional machines, simply:
 3. Run with a unique `machine-id`:
    ```bash
    node agent.js \
-     --server http://YOUR_SERVER_IP:3000 \
+     --server http://YOUR_SERVER_IP:3005 \
      --machine-id my-new-machine \
      --display-name "My New Machine"
    ```
