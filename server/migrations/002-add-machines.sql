@@ -16,14 +16,18 @@ CREATE INDEX IF NOT EXISTS idx_machines_id ON machines(machine_id);
 CREATE INDEX IF NOT EXISTS idx_machines_active ON machines(is_active);
 CREATE INDEX IF NOT EXISTS idx_machines_last_seen ON machines(last_seen);
 
--- Add machine_id column to existing tables (only if not exists)
--- SQLite doesn't support IF NOT EXISTS for ALTER COLUMN, so we check via pragma
--- Skip if column already exists (will silently fail if column exists, which is fine)
+-- Add machine_id column to existing tables
+-- SQLite requires recreating tables to add columns with defaults in a safe way
+-- We'll use ALTER TABLE ADD COLUMN which works for new columns
 
--- Try to add columns (will error if exists, but we handle it in code)
--- For now, we'll skip the ALTER TABLE commands since they were already run
+-- Add machine_id to metrics_raw (default to 'localhost' for backward compatibility)
+-- This will fail silently if the column already exists, which is fine
+ALTER TABLE metrics_raw ADD COLUMN machine_id TEXT DEFAULT 'localhost';
+ALTER TABLE metrics_hourly ADD COLUMN machine_id TEXT DEFAULT 'localhost';
+ALTER TABLE metrics_daily ADD COLUMN machine_id TEXT DEFAULT 'localhost';
+ALTER TABLE system_events ADD COLUMN machine_id TEXT DEFAULT 'localhost';
 
--- Create indexes for machine_id
+-- Create indexes for machine_id (these will be created only if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_metrics_raw_machine ON metrics_raw(machine_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_metrics_hourly_machine ON metrics_hourly(machine_id, hour_start);
 CREATE INDEX IF NOT EXISTS idx_metrics_daily_machine ON metrics_daily(machine_id, day_start);

@@ -117,22 +117,33 @@ async function getRadeontopInfo() {
 // Collect system info (called once on startup)
 async function collectSystemInfo() {
   try {
-    const [osInfo, system, cpu, mem, graphics] = await Promise.all([
+    const [osInfo, system, cpu, mem, graphics, time, versions, battery, fsSize] = await Promise.all([
       si.osInfo(),
       si.system(),
       si.cpu(),
       si.mem(),
       si.graphics(),
+      si.time(),
+      si.versions().catch(() => null),
+      si.battery().catch(() => null),
+      si.fsSize().catch(() => []),
     ]);
 
     return {
       os: `${osInfo.distro} ${osInfo.release} (${osInfo.kernel})`,
       arch: os.arch(),
+      timezone: time.timezoneName || time.timezone,
       cpu: {
         model: cpu.brand,
         cores: cpu.cores,
         physicalCores: cpu.physicalCores,
+        processors: cpu.processors,
         speedGHz: cpu.speed,
+        speedMin: cpu.speedmin,
+        speedMax: cpu.speedmax,
+        vendor: cpu.vendor,
+        family: cpu.family,
+        cache: cpu.cache,
       },
       memory: {
         total: mem.total,
@@ -144,7 +155,35 @@ async function collectSystemInfo() {
       system: {
         manufacturer: system.manufacturer,
         model: system.model,
+        serial: system.serial,
+        uuid: system.uuid,
+        sku: system.sku,
+        virtual: system.virtual,
       },
+      battery: battery ? {
+        percent: battery.percent,
+        health: battery.health || null,
+        isCharging: battery.ischarging,
+      } : null,
+      disk: fsSize && fsSize.length ? {
+        total: fsSize.reduce((acc, fs) => acc + (fs.size || 0), 0),
+        used: fsSize.reduce((acc, fs) => acc + (fs.used || 0), 0),
+        available: fsSize.reduce((acc, fs) => acc + (fs.available || 0), 0),
+        filesystems: fsSize.map(fs => ({
+          fs: fs.fs,
+          type: fs.type,
+          size: fs.size,
+          used: fs.used,
+          available: fs.available,
+          use: fs.use,
+          mount: fs.mount,
+        })),
+      } : null,
+      versions: versions ? {
+        kernel: versions.kernel,
+        node: versions.node,
+        npm: versions.npm,
+      } : null,
     };
   } catch (err) {
     console.error('Failed to collect system info:', err.message);
@@ -211,7 +250,12 @@ async function collectMetrics() {
       cpu_temp: temps?.main || null,
       ram_total: mem.total,
       ram_used: mem.active,
+      ram_free: mem.free,
+      ram_available: mem.available,
       ram_percent: (mem.active / mem.total) * 100,
+      swap_total: mem.swaptotal || 0,
+      swap_used: mem.swapused || 0,
+      swap_percent: mem.swaptotal > 0 ? (mem.swapused / mem.swaptotal) * 100 : 0,
       gpu_utilization: maxGpuUtil,
       gpu_temp: maxGpuTemp,
       gpu_mem_used: totalVram,
@@ -250,8 +294,13 @@ async function submitMetrics() {
 
     // Collect and send system info on first submission
     const systemInfo = !systemInfoSent ? await collectSystemInfo() : null;
+    console.log('DEBUG: systemInfoSent =', systemInfoSent);
+    console.log('DEBUG: systemInfo =', systemInfo ? Object.keys(systemInfo).length + ' fields' : 'NULL');
     if (systemInfo) {
+      console.log('DEBUG: Sending system_info to server');
       systemInfoSent = true;
+    } else {
+      console.log('DEBUG: No system_info to send');
     }
 
     const response = await fetch(`${SERVER_URL}/api/machines/${MACHINE_ID}/metrics`, {

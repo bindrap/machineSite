@@ -37,8 +37,21 @@ class MetricsDatabase {
     for (const migration of migrations) {
       const migrationPath = path.join(MIGRATIONS_DIR, migration);
       const sql = fs.readFileSync(migrationPath, 'utf8');
-      this.db.exec(sql);
-      console.log(`Migration applied: ${migration}`);
+
+      try {
+        // Try to execute the whole migration at once
+        this.db.exec(sql);
+        console.log(`Migration applied: ${migration}`);
+      } catch (err) {
+        // If it fails, it might be because columns already exist
+        // Try to execute statement by statement with error handling
+        if (err.message.includes('duplicate column') || err.message.includes('already exists')) {
+          console.log(`Migration ${migration} already applied (columns exist), skipping...`);
+        } else {
+          console.error(`Migration ${migration} failed:`, err.message);
+          throw err;
+        }
+      }
     }
   }
 
@@ -47,11 +60,13 @@ class MetricsDatabase {
     this.stmts = {
       insertMetric: this.db.prepare(`
         INSERT INTO metrics_raw (
-          machine_id, timestamp, cpu_load, cpu_temp, ram_total, ram_used, ram_percent,
+          machine_id, timestamp, cpu_load, cpu_temp, ram_total, ram_used, ram_free, ram_available, ram_percent,
+          swap_total, swap_used, swap_percent,
           gpu_utilization, gpu_temp, gpu_mem_used, gpu_mem_total,
           network_rx_sec, network_tx_sec
         ) VALUES (
-          @machine_id, @timestamp, @cpu_load, @cpu_temp, @ram_total, @ram_used, @ram_percent,
+          @machine_id, @timestamp, @cpu_load, @cpu_temp, @ram_total, @ram_used, @ram_free, @ram_available, @ram_percent,
+          @swap_total, @swap_used, @swap_percent,
           @gpu_utilization, @gpu_temp, @gpu_mem_used, @gpu_mem_total,
           @network_rx_sec, @network_tx_sec
         )
@@ -118,7 +133,7 @@ class MetricsDatabase {
           display_name = @display_name,
           ip_address = @ip_address,
           last_seen = @last_seen,
-          metadata = @metadata,
+          metadata = COALESCE(@metadata, metadata),
           updated_at = strftime('%s', 'now') * 1000
       `),
       updateMachineLastSeen: this.db.prepare(`

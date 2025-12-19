@@ -825,6 +825,8 @@
         return `${val.toFixed(val >= 10 ? 0 : 1)} ${units[i]}`;
       };
 
+      const CURRENT_MACHINE_ID = 'legolas'; // Should match server's MACHINE_ID
+
       const state = {
         labels: [],
         series: {
@@ -836,7 +838,7 @@
         },
         windowSize: 120,
         charts: {},
-        currentMachine: 'localhost',
+        currentMachine: 'legolas',
         machines: [],
       };
 
@@ -844,17 +846,17 @@
         try {
           const res = await fetch('/api/machines');
           const data = await res.json();
-          state.machines = data.machines || [];
+          // Filter out localhost - only show actual named machines
+          state.machines = (data.machines || []).filter(m => m.machine_id !== 'localhost');
 
           const selector = document.getElementById('machineSelector');
           if (state.machines.length > 0) {
             selector.innerHTML = state.machines.map(m => `
-              <option value="${m.machine_id}">${m.display_name || m.hostname || m.machine_id}${m.machine_id === 'localhost' ? ' (This Machine)' : ''}</option>
+              <option value="${m.machine_id}">${m.display_name || m.hostname || m.machine_id}</option>
             `).join('');
 
-            // Set initial machine to localhost if available, otherwise first machine
-            const localhostMachine = state.machines.find(m => m.machine_id === 'localhost');
-            state.currentMachine = localhostMachine ? 'localhost' : state.machines[0].machine_id;
+            // Set initial machine to first available machine
+            state.currentMachine = state.machines[0].machine_id;
             selector.value = state.currentMachine;
 
             // Setup change handler
@@ -873,10 +875,20 @@
               };
               drawAll();
 
+              // Update status indicators
+              ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = 'Loading...';
+              });
+
               // Refresh all data for new machine
               fetchInfo();
+              fetchProcesses(); // Update processes (will show N/A for remote machines)
               if (typeof fetchHistoricalData === 'function') fetchHistoricalData();
               if (typeof fetchDbStats === 'function') fetchDbStats();
+
+              // For remote machines, start polling; for local machine, use WebSocket
+              setupDataCollection();
             });
           }
         } catch (err) {
@@ -886,7 +898,7 @@
 
       async function fetchInfo() {
         try {
-          const machineId = state.currentMachine || 'localhost';
+          const machineId = state.currentMachine || 'legolas';
           const res = await fetch(`/api/info/${machineId}`);
           const info = await res.json();
           renderInfo(info);
@@ -1004,9 +1016,32 @@
         drawAll();
       }
 
+      let activeWs = null;
+      let pollInterval = null;
+
+      function setupDataCollection() {
+        // Clean up existing connections
+        if (activeWs) {
+          activeWs.close();
+          activeWs = null;
+        }
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+
+        // Use WebSocket for current machine, polling for others
+        if (state.currentMachine === CURRENT_MACHINE_ID) {
+          connectWs();
+        } else {
+          startPolling();
+        }
+      }
+
       function connectWs() {
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const ws = new WebSocket(`${protocol}://${window.location.host}/ws/metrics`);
+        activeWs = ws;
 
         ws.onopen = () => {
           ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
@@ -1021,11 +1056,15 @@
           });
         };
         ws.onclose = () => {
-          ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = 'Reconnecting…';
-          });
-          setTimeout(connectWs, 2000);
+          if (state.currentMachine === CURRENT_MACHINE_ID) {
+            ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = 'Reconnecting…';
+            });
+            setTimeout(() => {
+              if (state.currentMachine === CURRENT_MACHINE_ID) connectWs();
+            }, 2000);
+          }
         };
 
         ws.onmessage = (event) => {
@@ -1048,6 +1087,60 @@
         };
       }
 
+      async function pollRemoteMachineMetrics() {
+        try {
+          const now = Date.now();
+          const fiveSecondsAgo = now - 5000;
+          const response = await fetch(`/api/metrics/range?start=${fiveSecondsAgo}&end=${now}&granularity=raw&machine_id=${state.currentMachine}`);
+          const data = await response.json();
+
+          if (data.metrics && data.metrics.cpu_load && data.metrics.cpu_load.length > 0) {
+            const latest = data.metrics.cpu_load[data.metrics.cpu_load.length - 1];
+            const label = new Date(latest.timestamp).toLocaleTimeString();
+
+            const cpu = data.metrics.cpu_load[data.metrics.cpu_load.length - 1]?.value || 0;
+            const ram = data.metrics.ram_percent[data.metrics.ram_percent.length - 1]?.value || 0;
+            const gpu = data.metrics.gpu_utilization[data.metrics.gpu_utilization.length - 1]?.value || 0;
+            const netDown = (data.metrics.network_rx_sec?.[data.metrics.network_rx_sec.length - 1]?.value || 0) / 1024;
+            const netUp = (data.metrics.network_tx_sec?.[data.metrics.network_tx_sec.length - 1]?.value || 0) / 1024;
+
+            pushPoint(label, cpu, gpu, ram, netDown, netUp);
+
+            const cpuTemp = data.metrics.cpu_temp?.[data.metrics.cpu_temp.length - 1]?.value;
+            const gpuTemp = data.metrics.gpu_temp?.[data.metrics.gpu_temp.length - 1]?.value;
+
+            if (cpuTemp != null) {
+              document.getElementById('cpuTempValue').textContent = `${cpuTemp.toFixed(0)}°C`;
+            }
+            if (gpuTemp != null) {
+              document.getElementById('gpuTempValue').textContent = `${gpuTemp.toFixed(0)}°C`;
+            }
+            document.getElementById('netSpeedValue').textContent = `${netDown.toFixed(1)} KB/s ↓  •  ${netUp.toFixed(1)} KB/s ↑`;
+          }
+
+          ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = 'Polling (5s)';
+          });
+        } catch (err) {
+          console.error('Failed to poll metrics:', err);
+          ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = 'Error';
+          });
+        }
+      }
+
+      function startPolling() {
+        ['cpuStatus', 'ramStatus', 'gpuStatus', 'netStatus'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = 'Polling (5s)';
+        });
+
+        pollRemoteMachineMetrics(); // Poll immediately
+        pollInterval = setInterval(pollRemoteMachineMetrics, 5000); // Then every 5 seconds
+      }
+
       async function sendPowerCommand(endpoint) {
         const statusEl = document.getElementById('statusText');
         try {
@@ -1064,6 +1157,16 @@
       document.getElementById('rebootBtn').addEventListener('click', () => sendPowerCommand('/api/power/reboot'));
 
       async function fetchProcesses() {
+        // Processes only available for local machine
+        if (state.currentMachine !== CURRENT_MACHINE_ID) {
+          const tbody = document.getElementById('processTableBody');
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--muted)">Process monitoring only available for local machine (Legolas)</td></tr>';
+          document.getElementById('processTotal').textContent = 'N/A';
+          document.getElementById('processRunning').textContent = 'N/A';
+          document.getElementById('processSleeping').textContent = 'N/A';
+          return;
+        }
+
         try {
           const res = await fetch('/api/processes');
           const data = await res.json();
@@ -1290,7 +1393,7 @@
       // Fetch machines first, then other data
       fetchMachines().then(() => {
         fetchInfo();
-        connectWs();
+        setupDataCollection(); // Use new setup function instead of connectWs
         fetchProcesses();
         setInterval(fetchProcesses, 5000);
       });

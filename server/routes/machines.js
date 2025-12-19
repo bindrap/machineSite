@@ -131,11 +131,20 @@ router.post('/:machine_id/metrics', async (req, res) => {
     if (system_info) {
       console.log(`Received system_info for ${machine_id}:`, JSON.stringify(system_info, null, 2));
       machineData.metadata = system_info;
+      console.log(`DEBUG: About to upsert machine with metadata keys:`, Object.keys(system_info));
+      console.log(`DEBUG: machineData.metadata type:`, typeof machineData.metadata);
+      console.log(`DEBUG: machineData.metadata is:`, machineData.metadata ? 'truthy' : 'falsy');
     } else {
       console.log(`No system_info received for ${machine_id}`);
     }
 
-    db.upsertMachine(machineData);
+    console.log(`DEBUG: Full machineData being passed to upsert:`, JSON.stringify(machineData, null, 2));
+    const result = db.upsertMachine(machineData);
+    console.log(`DEBUG: upsertMachine result:`, result);
+
+    // Verify it was stored
+    const storedMachine = db.getMachine(machine_id);
+    console.log(`DEBUG: Stored machine metadata:`, storedMachine.metadata ? 'HAS METADATA' : 'NO METADATA');
 
     // Insert metrics with machine_id
     const metricsWithMachineId = metrics.map(m => ({
